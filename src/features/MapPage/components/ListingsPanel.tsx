@@ -10,9 +10,9 @@ import {
 } from "@mui/material";
 
 import ListingsPanelHeader from "./ListingsPanelHeader";
-import FilterControls from "./FilterControls";
+import FilterControlsUI from "./FilterControlsUI";
 import type { Listing, PlaceType } from "../types/mapTypes";
-import { mainColor } from "../../../types";
+import { LISTINGS_MAX_MILES, mainColor } from "../../../types";
 
 interface ListingsPanelProps {
   listings?: Listing[];
@@ -38,7 +38,7 @@ export default function ListingsPanel({
   const [filterOpen, setFilterOpen] = useState(false);
 
   return (
-    <Box sx={{ overflowY: "auto", height: "100%"}}>
+    <Box sx={{ overflowY: "auto", height: "100%" }}>
       {/* --- Header with Filter Button --- */}
       <ListingsPanelHeader
         listingCount={listings.length}
@@ -50,13 +50,16 @@ export default function ListingsPanel({
       {/* --- Filter Collapse Area (Remains here) --- */}
       <Collapse in={filterOpen} timeout="auto" unmountOnExit>
         {/* The filter UI component */}
-        <FilterControls
-          maxMiles={maxMiles}
-          handleMilesChange={handleMilesChange}
-          allPlaceTypes={allPlaceTypes}
-          selectedPlaceTypes={selectedPlaceTypes}
-          onPlaceTypeChange={onPlaceTypeChange}
-        />
+        <Box sx={{ p: 2 }}>
+          <FilterControlsUI
+            maxMiles={maxMiles}
+            handleMilesChange={handleMilesChange}
+            allPlaceTypes={allPlaceTypes}
+            selectedPlaceTypes={selectedPlaceTypes}
+            onPlaceTypeChange={onPlaceTypeChange}
+            sliderMax={LISTINGS_MAX_MILES}
+          />
+        </Box>
       </Collapse>
 
       {/* --- Listings Scroll Area (ALWAYS displayed below the filters) --- */}
@@ -104,7 +107,6 @@ export default function ListingsPanel({
                   {listing.rating}
                 </Typography>
               </Box>
-
             </CardContent>
           </Card>
         ))}
