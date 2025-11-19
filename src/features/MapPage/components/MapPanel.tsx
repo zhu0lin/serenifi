@@ -1,49 +1,74 @@
 import { useEffect, useState } from "react";
-import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
+import {
+  AdvancedMarker,
+  APIProvider,
+  Map,
+  useMap,
+} from "@vis.gl/react-google-maps";
+import { Box } from "@mui/material";
+import { DEFAULT_CENTER_LOCATION } from "../../../types";
 
-import type { Listing, LatLngLiteral } from "../types/mapTypes";
+type LatLngLiteral = { lat: number; lng: number };
+type Listing = { id: string; location: LatLngLiteral; type: string };
+
 
 function MarkersLayer({
   listings,
   onSelect,
   userLocation,
+  isUserLocationCentered,
 }: {
   listings: Listing[];
   onSelect: (listing: Listing) => void;
   userLocation: LatLngLiteral;
+  isUserLocationCentered: boolean;
 }) {
   return (
     <>
       {listings.map((listing) => (
-        <Marker
+        <AdvancedMarker
           key={listing.id}
           position={listing.location}
           onClick={() => onSelect(listing)}
         />
       ))}
-      {userLocation && (
-        <Marker
-          position={userLocation}
-          icon={{
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2,
-            scale: 8,
-          }}
-          zIndex={100}
-        />
+      {isUserLocationCentered ? (
+        <AdvancedMarker position={userLocation} zIndex={100}>
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              backgroundColor: "#4285F4",
+              border: "2px solid #ffffff",
+              borderRadius: "50%",
+              boxSizing: "border-box",
+            }}
+          />
+        </AdvancedMarker>
+      ) : (
+        <AdvancedMarker position={userLocation} zIndex={100}>
+          <div
+            style={{
+              width: "16px",
+              height: "16px",
+              backgroundColor: "#00FF00",
+              border: "2px solid #ffffff",
+              borderRadius: "50%",
+              boxSizing: "border-box",
+            }}
+          />
+        </AdvancedMarker>
       )}
     </>
   );
 }
 
+// --- ControlledMap Component (No change, as it receives guaranteed valid location) ---
 interface ControlledMapProps {
   listings: Listing[];
   selectedListing: Listing | null;
   onSelect: (listing: Listing) => void;
-  userLocation: LatLngLiteral;
+  userLocation: LatLngLiteral | null;
   centerTarget: LatLngLiteral | null;
 }
 
@@ -78,28 +103,33 @@ function ControlledMap({
     }
   }, [map, userLocation, initialUserCenterDone]);
 
+  const center = userLocation || DEFAULT_CENTER_LOCATION;
+
   return (
     <Map
       style={{ width: "100%", height: "100%" }}
       defaultZoom={11}
-      defaultCenter={userLocation}
+      defaultCenter={center}
       gestureHandling="greedy"
       disableDefaultUI
+      mapId={'id'}
     >
       <MarkersLayer
         listings={listings}
         onSelect={onSelect}
-        userLocation={userLocation}
+        userLocation={center}
+        isUserLocationCentered={!!userLocation}
       />
     </Map>
   );
 }
 
+// --- MapPanel Component (With Fallback Logic) ---
 interface MapPanelProps {
   listings: Listing[];
   selectedListing: Listing | null;
   onSelect: (listing: Listing) => void;
-  userLocation: LatLngLiteral;
+  userLocation: LatLngLiteral | null; // Can be null from hook
   centerTarget: LatLngLiteral | null;
 }
 
@@ -111,16 +141,16 @@ export default function MapPanel({
   centerTarget,
 }: MapPanelProps) {
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    <Box style={{ width: "100%", height: "100%" }}>
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAP_API_KEY || ""}>
         <ControlledMap
           listings={listings}
           selectedListing={selectedListing}
           onSelect={onSelect}
-          userLocation={userLocation}
+          userLocation={userLocation} // Pass the guaranteed valid center
           centerTarget={centerTarget}
         />
       </APIProvider>
-    </div>
+    </Box>
   );
 }

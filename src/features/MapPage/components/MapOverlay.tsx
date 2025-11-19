@@ -67,14 +67,6 @@ export default function MapOverlay({
           pointerEvents: "auto",
         }}
 
-        disabled={permission === "denied"}
-        title={
-          userLocationExists
-            ? "Center Map on My Location"
-            : permission === "denied"
-            ? "Location Blocked"
-            : "Find My Location"
-        }
       >
         <HomeIcon sx={{ fontSize: 20 }} />
       </Button>

@@ -10,7 +10,7 @@ import MapOverlay from "./components/MapOverlay";
 import { useUserLocation } from "./hooks/useUserLocation";
 import type { Listing, PlaceType } from "./types/mapTypes";
 import { ALL_PLACE_TYPES, allListings } from "./types/mapTypes";
-import { mainColor, secondaryColor, DEFAULT_MILES } from "../../types";
+import { mainColor, secondaryColor, DEFAULT_MILES, DEFAULT_CENTER_LOCATION } from "../../types";
 
 const getDistanceInMiles = (
   lat1: number,
@@ -71,7 +71,7 @@ export default function MapPage() {
     if (userLocation) {
       setMapCenterTarget(userLocation);
     } else {
-      requestLocation();
+      setMapCenterTarget(DEFAULT_CENTER_LOCATION)
     }
   };
 
@@ -177,7 +177,7 @@ export default function MapPage() {
           listings={filteredListings}
           selectedListing={selectedListing}
           onSelect={handleListingSelect}
-          userLocation={userLocation!}
+          userLocation={userLocation}
           centerTarget={mapCenterTarget}
         />
 
