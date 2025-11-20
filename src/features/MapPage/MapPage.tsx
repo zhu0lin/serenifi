@@ -37,7 +37,7 @@ const sidebarMaxWidth = "90%";
 
 
 export default function MapPage() {
-  const { userLocation, permission, requestLocation } = useUserLocation();
+  const { userLocation, permission } = useUserLocation();
 
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [mapCenterTarget, setMapCenterTarget] = useState<{

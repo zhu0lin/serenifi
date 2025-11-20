@@ -9,8 +9,7 @@ import { Box } from "@mui/material";
 import { DEFAULT_CENTER_LOCATION } from "../../../types";
 
 type LatLngLiteral = { lat: number; lng: number };
-type Listing = { id: string; location: LatLngLiteral; type: string };
-
+import type { Listing } from "../types/mapTypes";
 
 function MarkersLayer({
   listings,
@@ -112,7 +111,7 @@ function ControlledMap({
       defaultCenter={center}
       gestureHandling="greedy"
       disableDefaultUI
-      mapId={'id'}
+      mapId={"id"}
     >
       <MarkersLayer
         listings={listings}

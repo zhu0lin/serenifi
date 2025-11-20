@@ -24,8 +24,6 @@ interface MapOverlayProps {
 
 export default function MapOverlay({
   onCenterMap,
-  userLocationExists,
-  permission,
   filterOpen,
   setFilterOpen,
   sidebarOpen,
