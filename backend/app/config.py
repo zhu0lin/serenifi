@@ -26,6 +26,9 @@ class Settings:
     # NYC OpenData API endpoint
     NYC_OPENDATA_BASE_URL: str = "https://data.cityofnewyork.us/resource/p5f6-bkga.json"
     
+    # Google Maps API configuration
+    GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
     @property
     def supabase_configured(self) -> bool:
         """Check if Supabase is properly configured."""

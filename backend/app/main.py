@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health
+from app.routers import health, recommendations
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -23,6 +23,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(health.router)
+app.include_router(recommendations.router)
 
 
 @app.get("/")

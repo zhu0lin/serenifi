@@ -105,6 +105,60 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Error counting complaints: {e}")
             raise
+    
+    def get_complaint_count_near(self, latitude: float, longitude: float, radius_degrees: float = 0.002) -> int:
+        """
+        Get the count of noise complaints near a specific location.
+        Uses a simple bounding box approximation.
+        
+        Args:
+            latitude: Latitude of the center point
+            longitude: Longitude of the center point
+            radius_degrees: Approximate radius in degrees (default 0.002 ~= 200m)
+            
+        Returns:
+            Count of complaints within the area
+        """
+        try:
+            # Bounding box coordinates
+            min_lat = latitude - radius_degrees
+            max_lat = latitude + radius_degrees
+            min_lng = longitude - radius_degrees
+            max_lng = longitude + radius_degrees
+            
+            response = self.client.table(self.table_name).select(
+                "unique_key", count="exact"
+            ).gte("latitude", min_lat).lte("latitude", max_lat).gte("longitude", min_lng).lte("longitude", max_lng).execute()
+            
+            return response.count if response.count is not None else 0
+            
+        except Exception as e:
+            logger.error(f"Error counting nearby complaints: {e}")
+            return 0
+    
+    def get_complaints_in_area(self, min_lat: float, max_lat: float, min_lng: float, max_lng: float) -> List[dict]:
+        """
+        Get all noise complaints within a bounding box.
+        
+        Args:
+            min_lat: Minimum latitude
+            max_lat: Maximum latitude
+            min_lng: Minimum longitude
+            max_lng: Maximum longitude
+            
+        Returns:
+            List of dicts containing latitude and longitude of complaints
+        """
+        try:
+            response = self.client.table(self.table_name).select(
+                "latitude, longitude"
+            ).gte("latitude", min_lat).lte("latitude", max_lat).gte("longitude", min_lng).lte("longitude", max_lng).execute()
+            
+            return response.data if response.data else []
+            
+        except Exception as e:
+            logger.error(f"Error fetching complaints in area: {e}")
+            return []
 
 
 # Global service instance
