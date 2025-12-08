@@ -28,9 +28,9 @@ A web application for finding quiet spaces in New York City. The app uses 311 No
 
 ### Prerequisites
 
-- Node.js 20+
-- Python 3.9+
 - Docker and Docker Compose (recommended)
+- Node.js 20+ (for local development)
+- Python 3.9+ (for local development)
 - Supabase account
 - Google Maps API key
 
@@ -71,6 +71,7 @@ docker-compose down
 #### Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
@@ -98,21 +99,28 @@ python scripts/seed_data.py
 
 ```
 fall-ctp/
-├── src/                    # Frontend source code
-│   ├── components/         # Shared components
-│   ├── features/           # Feature modules
-│   │   └── MapPage/        # Main map interface
-│   └── types/              # TypeScript type definitions
+├── frontend/               # React frontend
+│   ├── src/
+│   │   ├── components/     # Shared components
+│   │   ├── features/       # Feature modules
+│   │   │   └── MapPage/    # Main map interface
+│   │   └── types/          # TypeScript type definitions
+│   ├── public/             # Static assets
+│   ├── Dockerfile          # Frontend container
+│   └── package.json
 ├── backend/                # FastAPI backend
 │   ├── app/
 │   │   ├── models/         # Pydantic models
 │   │   ├── routers/        # API routes
 │   │   ├── services/       # Business logic
 │   │   └── utils/          # Utility functions
-│   └── scripts/            # Data seeding scripts
+│   ├── scripts/            # Data seeding scripts
+│   ├── Dockerfile          # Backend container
+│   └── requirements.txt
+├── docs/                   # Documentation
 ├── docker-compose.yml      # Docker orchestration
-├── Dockerfile              # Frontend container
-└── backend/Dockerfile      # Backend container
+├── .env.example            # Environment template
+└── README.md
 ```
 
 ## API Endpoints

@@ -1,6 +1,5 @@
 # Dependencies
 node_modules
-venv
 
 # Build outputs
 dist
@@ -27,7 +26,3 @@ npm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
-
-# Backend directory (built separately)
-backend
-
