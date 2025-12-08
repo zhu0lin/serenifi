@@ -42,26 +42,6 @@ SUPABASE_KEY=your_supabase_service_role_key
 NYC_OPENDATA_APP_TOKEN=your_socrata_app_token  # Optional
 ```
 
-### Supabase Setup
-
-1. Create a new table in Supabase called `noise_complaints`
-2. The table should have columns matching the `NoiseComplaint` model
-3. Set `unique_key` as the primary key
-
-You can use the following SQL to create the table:
-
-```sql
-CREATE TABLE noise_complaints (
-    unique_key TEXT PRIMARY KEY,
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    complaint_type TEXT
-);
-
-CREATE INDEX idx_latitude_longitude ON noise_complaints(latitude, longitude);
-CREATE INDEX idx_complaint_type ON noise_complaints(complaint_type);
-```
-
 ## Running the Application
 
 ### Start the FastAPI server:
