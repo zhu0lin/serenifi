@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,6 +13,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 import ListingsPanelHeader from "./ListingsPanelHeader";
+import { getStreetViewImageUrl } from "../../../services/placesApi";
 import type { Place } from "../../../services/placesApi";
 import { mainColor } from "../../../types";
 
@@ -48,11 +49,6 @@ function getPlaceTypeIcon(types: string[]): string {
   return "📍";
 }
 
-// Construct photo URL
-function getPhotoUrl(photoReference: string): string {
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-  return `${apiUrl}/places/photo?photo_reference=${encodeURIComponent(photoReference)}&max_width=400`;
-}
 
 export default function ListingsPanel({
   places,
@@ -62,10 +58,22 @@ export default function ListingsPanel({
   selectedPlace,
 }: ListingsPanelProps) {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const handleImageError = (placeId: string) => {
     setImageErrors((prev) => new Set(prev).add(placeId));
   };
+
+  // Scroll to selected place card when it changes (e.g., from map marker click)
+  useEffect(() => {
+    if (selectedPlace && cardRefs.current.has(selectedPlace.place_id)) {
+      const cardElement = cardRefs.current.get(selectedPlace.place_id);
+      cardElement?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [selectedPlace]);
 
   return (
     <Box sx={{ overflowY: "auto", height: "100%", bgcolor: "#fafafa" }}>
@@ -99,6 +107,9 @@ export default function ListingsPanel({
           {places.map((place) => (
             <Card
               key={place.place_id}
+              ref={(el) => {
+                if (el) cardRefs.current.set(place.place_id, el);
+              }}
               onClick={() => onSelect(place)}
               elevation={selectedPlace?.place_id === place.place_id ? 4 : 1}
               sx={{
@@ -114,12 +125,12 @@ export default function ListingsPanel({
                   : "2px solid transparent",
               }}
             >
-              {/* Place photo */}
-              {place.photo && !imageErrors.has(place.place_id) ? (
+              {/* Place photo - using Google Street View */}
+              {!imageErrors.has(place.place_id) ? (
                 <CardMedia
                   component="img"
-                  height="120"
-                  image={getPhotoUrl(place.photo.photo_reference)}
+                  height="140"
+                  image={getStreetViewImageUrl(place.location.lat, place.location.lng, 400, 140)}
                   alt={place.name}
                   onError={() => handleImageError(place.place_id)}
                   sx={{ objectFit: "cover" }}
@@ -127,7 +138,7 @@ export default function ListingsPanel({
               ) : (
                 <Box
                   sx={{
-                    height: 120,
+                    height: 140,
                     bgcolor: getPlaceTypeColor(place.types),
                     display: "flex",
                     alignItems: "center",

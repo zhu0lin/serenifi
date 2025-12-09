@@ -32,11 +32,10 @@ function HeatmapLayer({ points }: { points: HeatmapPoint[] }) {
       maxIntensity: 10,  // Force red at 10+ complaints per cell
       dissipating: true,
       gradient: [
-        "rgba(0, 255, 0, 0)",        // Transparent (no complaints)
-        "rgba(144, 238, 144, 0.4)",  // Light green (very few)
-        "rgba(255, 255, 0, 0.5)",    // Yellow (few)
-        "rgba(255, 200, 0, 0.6)",    // Light orange
-        "rgba(255, 150, 0, 0.7)",    // Orange
+        "rgba(255, 255, 0, 0)",      // Transparent (edge of heatmap)
+        "rgba(255, 255, 0, 0.6)",    // Yellow (few complaints)
+        "rgba(255, 200, 0, 0.7)",    // Light orange
+        "rgba(255, 150, 0, 0.75)",   // Orange
         "rgba(255, 100, 0, 0.8)",    // Dark orange
         "rgba(255, 50, 0, 0.85)",    // Light red
         "rgba(255, 0, 0, 0.9)",      // Red (many complaints)
@@ -61,6 +60,34 @@ function HeatmapLayer({ points }: { points: HeatmapPoint[] }) {
 
     heatmap.setData(data);
   }, [heatmap, points]);
+
+  return null;
+}
+
+// Quiet Zone Overlay - Green base layer representing quiet areas
+function QuietZoneOverlay() {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Cover NYC area with green overlay to represent quiet zones
+    const quietZone = new google.maps.Rectangle({
+      bounds: {
+        north: 40.92,
+        south: 40.49,
+        east: -73.70,
+        west: -74.26,
+      },
+      fillColor: "#4CAF50",
+      fillOpacity: 0.15,
+      strokeWeight: 0,
+      map,
+      zIndex: 0,
+    });
+
+    return () => quietZone.setMap(null);
+  }, [map]);
 
   return null;
 }
@@ -185,6 +212,7 @@ function ControlledMap({
       disableDefaultUI
       mapId={"id"}
     >
+      <QuietZoneOverlay />
       <HeatmapLayer points={heatmapPoints} />
       <PlacesMarkersLayer
         places={places}

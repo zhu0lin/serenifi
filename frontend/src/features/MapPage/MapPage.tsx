@@ -8,6 +8,8 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import ListingsPanel from "./components/ListingsPanel";
 import MapPanel from "./components/MapPanel";
+import PlaceDetailModal from "./components/PlaceDetailModal";
+import ChatBot from "./components/ChatBot";
 import type { HeatmapPoint } from "./components/MapPanel";
 import { useUserLocation } from "./hooks/useUserLocation";
 import { fetchPlaces, fetchDensity } from "../../services/placesApi";
@@ -33,6 +35,7 @@ export default function MapPage() {
 
   // UI state
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [mapCenterTarget, setMapCenterTarget] = useState<{
     lat: number;
     lng: number;
@@ -91,7 +94,15 @@ export default function MapPage() {
     loadPlaces();
   }, [userLocation]);
 
+  // Handle place selection from sidebar - opens detail modal
   const handlePlaceSelect = (place: Place) => {
+    setSelectedPlace(place);
+    setMapCenterTarget(place.location);
+    setDetailModalOpen(true);
+  };
+
+  // Handle place selection from map marker - just highlights and scrolls
+  const handleMapMarkerSelect = (place: Place) => {
     setSelectedPlace(place);
     setMapCenterTarget(place.location);
   };
@@ -215,7 +226,7 @@ export default function MapPage() {
           heatmapPoints={heatmapPoints}
           places={places}
           selectedPlace={selectedPlace}
-          onSelectPlace={handlePlaceSelect}
+          onSelectPlace={handleMapMarkerSelect}
           userLocation={userLocation}
           centerTarget={mapCenterTarget}
         />
@@ -249,8 +260,8 @@ export default function MapPage() {
         <Box
           sx={{
             position: "absolute",
-            bottom: 80,
-            right: 16,
+            top: 16,
+            left: 70,
             bgcolor: "white",
             borderRadius: "8px",
             p: 1.5,
@@ -264,10 +275,10 @@ export default function MapPage() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Box
               sx={{
-                width: 80,
+                width: 100,
                 height: 12,
                 borderRadius: 1,
-                background: "linear-gradient(to right, #FFFF00, #FFA500, #FF0000)",
+                background: "linear-gradient(to right, #4CAF50, #FFFF00, #FFA500, #FF0000)",
               }}
             />
           </Box>
@@ -323,6 +334,16 @@ export default function MapPage() {
       >
         Show {places.length} Quiet Places
       </Button>
+
+      {/* Place Detail Modal */}
+      <PlaceDetailModal
+        place={selectedPlace}
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+      />
+
+      {/* Gemini Chatbot */}
+      <ChatBot places={places} />
     </Box>
   );
 }

@@ -44,6 +44,31 @@ export interface DensityResponse {
   max_density: number;
 }
 
+export interface PlaceReview {
+  author_name: string;
+  rating: number;
+  text: string;
+  time: number;
+  relative_time_description: string;
+}
+
+export interface PlaceDetails {
+  place_id: string;
+  name: string;
+  formatted_address: string | null;
+  formatted_phone_number: string | null;
+  website: string | null;
+  url: string | null;
+  rating: number | null;
+  user_ratings_total: number | null;
+  location: PlaceLocation;
+  types: string[];
+  opening_hours: string[] | null;
+  is_open: boolean | null;
+  reviews: PlaceReview[];
+  photos: PlacePhoto[];
+}
+
 /**
  * Fetch quiet places (libraries, parks, POPS) near a location
  * @param lat Latitude of search center
@@ -122,5 +147,39 @@ export async function getPlacePhotoUrl(
 
   const data = await response.json();
   return data.photo_url;
+}
+
+/**
+ * Get Street View image URL for a location.
+ * This URL can be used directly as an image src - the backend
+ * will redirect to the actual Google Street View image.
+ * @param lat Latitude of the location
+ * @param lng Longitude of the location
+ * @param width Image width in pixels
+ * @param height Image height in pixels
+ * @returns Backend URL that redirects to Street View image
+ */
+export function getStreetViewImageUrl(
+  lat: number,
+  lng: number,
+  width: number = 400,
+  height: number = 200
+): string {
+  return `${API_BASE_URL}/places/streetview?lat=${lat}&lng=${lng}&width=${width}&height=${height}`;
+}
+
+/**
+ * Fetch detailed information about a place
+ * @param placeId Google Place ID
+ * @returns Detailed place information including phone, website, hours, reviews
+ */
+export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails> {
+  const response = await fetch(`${API_BASE_URL}/places/${encodeURIComponent(placeId)}/details`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch place details: ${response.statusText}`);
+  }
+
+  return response.json();
 }
 

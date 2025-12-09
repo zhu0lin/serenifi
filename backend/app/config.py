@@ -29,6 +29,9 @@ class Settings:
     # Google Places API configuration
     GOOGLE_PLACES_API_KEY: Optional[str] = os.getenv("GOOGLE_PLACES_API_KEY")
     
+    # Google Gemini API configuration
+    GOOGLE_GEMINI_API_KEY: Optional[str] = os.getenv("GOOGLE_GEMINI_API_KEY")
+    
     @property
     def supabase_configured(self) -> bool:
         """Check if Supabase is properly configured."""
@@ -38,6 +41,11 @@ class Settings:
     def google_places_configured(self) -> bool:
         """Check if Google Places API is properly configured."""
         return bool(self.GOOGLE_PLACES_API_KEY)
+    
+    @property
+    def gemini_configured(self) -> bool:
+        """Check if Google Gemini API is properly configured."""
+        return bool(self.GOOGLE_GEMINI_API_KEY)
 
 
 # Global settings instance

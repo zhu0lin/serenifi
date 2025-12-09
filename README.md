@@ -1,4 +1,4 @@
-# NYC Quiet Spaces
+# Serenifi
 
 A web application for finding quiet spaces in New York City. The app uses 311 Noise Complaints data from NYC OpenData to help users discover peaceful locations like libraries, parks, cafes, and privately owned public spaces (POPS) away from noisy areas.
 
@@ -12,7 +12,8 @@ A web application for finding quiet spaces in New York City. The app uses 311 No
 
 ## Tech Stack
 
-### Frontend
+### Frontend 
+### Warning: The frontend is heavily vibe coded due to desired focus of working on backend logic.
 - React 19 with TypeScript
 - Vite for build tooling
 - Material UI (MUI) for components

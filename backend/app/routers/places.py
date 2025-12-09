@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from app.config import settings
@@ -16,6 +17,8 @@ router = APIRouter(prefix="/places", tags=["places"])
 # Google Places API endpoints
 PLACES_NEARBY_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
 PLACES_PHOTO_URL = "https://maps.googleapis.com/maps/api/place/photo"
+PLACES_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
+STREETVIEW_URL = "https://maps.googleapis.com/maps/api/streetview"
 
 
 class PlaceLocation(BaseModel):
@@ -48,6 +51,41 @@ class PlacesResponse(BaseModel):
     """Response containing list of places."""
     places: List[Place]
     total: int
+
+
+class OpeningHoursPeriod(BaseModel):
+    """A single opening hours period."""
+    open_day: int
+    open_time: str
+    close_day: Optional[int] = None
+    close_time: Optional[str] = None
+
+
+class PlaceReview(BaseModel):
+    """A user review for a place."""
+    author_name: str
+    rating: int
+    text: str
+    time: int  # Unix timestamp
+    relative_time_description: str
+
+
+class PlaceDetails(BaseModel):
+    """Detailed information about a place."""
+    place_id: str
+    name: str
+    formatted_address: Optional[str] = None
+    formatted_phone_number: Optional[str] = None
+    website: Optional[str] = None
+    url: Optional[str] = None  # Google Maps URL
+    rating: Optional[float] = None
+    user_ratings_total: Optional[int] = None
+    location: PlaceLocation
+    types: List[str]
+    opening_hours: Optional[List[str]] = None  # Formatted weekday text
+    is_open: Optional[bool] = None
+    reviews: List[PlaceReview] = []
+    photos: List[PlacePhoto] = []
 
 
 def parse_place(place_data: dict) -> Place:
@@ -197,4 +235,135 @@ async def get_place_photo(
     photo_url = f"{PLACES_PHOTO_URL}?maxwidth={max_width}&photo_reference={photo_reference}&key={settings.GOOGLE_PLACES_API_KEY}"
     
     return {"photo_url": photo_url}
+
+
+@router.get("/streetview")
+async def get_streetview_image(
+    lat: float = Query(..., description="Latitude of the location"),
+    lng: float = Query(..., description="Longitude of the location"),
+    width: int = Query(400, description="Image width in pixels"),
+    height: int = Query(200, description="Image height in pixels"),
+):
+    """
+    Get a Street View image for a location.
+    
+    Redirects to the Google Street View Static API image.
+    """
+    if not settings.google_places_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Places API not configured.",
+        )
+    
+    streetview_url = f"{STREETVIEW_URL}?size={width}x{height}&location={lat},{lng}&key={settings.GOOGLE_PLACES_API_KEY}"
+    
+    return RedirectResponse(url=streetview_url)
+
+
+@router.get("/{place_id}/details", response_model=PlaceDetails)
+async def get_place_details(place_id: str):
+    """
+    Get detailed information about a place.
+    
+    Returns extended info including phone, website, hours, and reviews.
+    """
+    if not settings.google_places_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Places API not configured.",
+        )
+    
+    # Fields to request from Google Places API
+    fields = [
+        "place_id",
+        "name",
+        "formatted_address",
+        "formatted_phone_number",
+        "website",
+        "url",
+        "rating",
+        "user_ratings_total",
+        "geometry",
+        "types",
+        "opening_hours",
+        "reviews",
+        "photos",
+    ]
+    
+    params = {
+        "place_id": place_id,
+        "fields": ",".join(fields),
+        "key": settings.GOOGLE_PLACES_API_KEY,
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(PLACES_DETAILS_URL, params=params)
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get("status") != "OK":
+                logger.error(f"Google Places Details API error: {data.get('status')} - {data.get('error_message', '')}")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Place not found: {data.get('status')}",
+                )
+            
+            result = data.get("result", {})
+            location = result.get("geometry", {}).get("location", {})
+            
+            # Parse reviews
+            reviews = []
+            for review_data in result.get("reviews", [])[:5]:  # Limit to 5 reviews
+                reviews.append(PlaceReview(
+                    author_name=review_data.get("author_name", "Anonymous"),
+                    rating=review_data.get("rating", 0),
+                    text=review_data.get("text", ""),
+                    time=review_data.get("time", 0),
+                    relative_time_description=review_data.get("relative_time_description", ""),
+                ))
+            
+            # Parse photos
+            photos = []
+            for photo_data in result.get("photos", [])[:5]:  # Limit to 5 photos
+                photos.append(PlacePhoto(
+                    photo_reference=photo_data.get("photo_reference", ""),
+                    height=photo_data.get("height", 0),
+                    width=photo_data.get("width", 0),
+                ))
+            
+            # Parse opening hours
+            opening_hours = None
+            is_open = None
+            hours_data = result.get("opening_hours", {})
+            if hours_data:
+                opening_hours = hours_data.get("weekday_text", [])
+                is_open = hours_data.get("open_now")
+            
+            return PlaceDetails(
+                place_id=result.get("place_id", place_id),
+                name=result.get("name", ""),
+                formatted_address=result.get("formatted_address"),
+                formatted_phone_number=result.get("formatted_phone_number"),
+                website=result.get("website"),
+                url=result.get("url"),
+                rating=result.get("rating"),
+                user_ratings_total=result.get("user_ratings_total"),
+                location=PlaceLocation(
+                    lat=location.get("lat", 0),
+                    lng=location.get("lng", 0),
+                ),
+                types=result.get("types", []),
+                opening_hours=opening_hours,
+                is_open=is_open,
+                reviews=reviews,
+                photos=photos,
+            )
+            
+    except httpx.HTTPError as e:
+        logger.error(f"Error fetching place details: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch place details",
+        )
 

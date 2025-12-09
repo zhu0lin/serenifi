@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health, complaints, places
+from app.routers import health, complaints, places, chat
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(complaints.router)
 app.include_router(places.router)
+app.include_router(chat.router)
 
 
 @app.get("/")
