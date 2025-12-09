@@ -40,9 +40,9 @@ export async function sendChatMessage(
   if (places && places.length > 0) {
     requestBody.places = places.map((p) => ({
       name: p.name,
-      address: p.address,
+      address: p.address ?? undefined,
       type: p.types?.[0],
-      rating: p.rating,
+      rating: p.rating ?? undefined,
     }));
   }
 
