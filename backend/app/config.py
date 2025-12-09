@@ -26,10 +26,18 @@ class Settings:
     # NYC OpenData API endpoint
     NYC_OPENDATA_BASE_URL: str = "https://data.cityofnewyork.us/resource/p5f6-bkga.json"
     
+    # Google Places API configuration
+    GOOGLE_PLACES_API_KEY: Optional[str] = os.getenv("GOOGLE_PLACES_API_KEY")
+    
     @property
     def supabase_configured(self) -> bool:
         """Check if Supabase is properly configured."""
         return bool(self.SUPABASE_URL and self.SUPABASE_KEY)
+    
+    @property
+    def google_places_configured(self) -> bool:
+        """Check if Google Places API is properly configured."""
+        return bool(self.GOOGLE_PLACES_API_KEY)
 
 
 # Global settings instance

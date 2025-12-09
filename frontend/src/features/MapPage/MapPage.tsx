@@ -1,5 +1,5 @@
 // MapPage.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -8,100 +8,92 @@ import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import ListingsPanel from "./components/ListingsPanel";
 import MapPanel from "./components/MapPanel";
-import MapOverlay from "./components/MapOverlay";
+import type { HeatmapPoint } from "./components/MapPanel";
 import { useUserLocation } from "./hooks/useUserLocation";
-import type { Listing, ComplaintType } from "./types/mapTypes";
-import {
-  ALL_COMPLAINT_TYPES,
-  complaintsToListings,
-  mockListings,
-} from "./types/mapTypes";
-import { fetchComplaints } from "../../services/api";
+import { fetchPlaces, fetchDensity } from "../../services/placesApi";
+import type { Place } from "../../services/placesApi";
 import {
   mainColor,
   secondaryColor,
-  DEFAULT_MILES,
   DEFAULT_CENTER_LOCATION,
 } from "../../types";
-
-const getDistanceInMiles = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 3958.8;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
 const sidebarWidth = 400;
 const sidebarMaxWidth = "90%";
 
 export default function MapPage() {
-  const { userLocation, permission } = useUserLocation();
+  const { userLocation } = useUserLocation();
 
   // Data state
-  const [listings, setListings] = useState<Listing[]>([]);
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [heatmapPoints, setHeatmapPoints] = useState<HeatmapPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [placesLoading, setPlacesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // UI state
-  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [mapCenterTarget, setMapCenterTarget] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [maxMiles, setMaxMiles] = useState<number | "">(DEFAULT_MILES);
-  const [selectedComplaintTypes, setSelectedComplaintTypes] =
-    useState<ComplaintType[]>(ALL_COMPLAINT_TYPES);
 
-  // Fetch complaints on mount
+  // Center map on user location when it first becomes available
+  const [hasInitialCentered, setHasInitialCentered] = useState(false);
   useEffect(() => {
-    async function loadComplaints() {
+    if (userLocation && !hasInitialCentered) {
+      setMapCenterTarget(userLocation);
+      setHasInitialCentered(true);
+    }
+  }, [userLocation, hasInitialCentered]);
+
+  // Fetch heatmap density data on mount
+  useEffect(() => {
+    async function loadDensity() {
       try {
         setLoading(true);
-        setError(null);
-        const complaints = await fetchComplaints(1000, true);
-        const transformedListings = complaintsToListings(complaints);
-        setListings(transformedListings);
+        const data = await fetchDensity(0.003, 5000);
+        setHeatmapPoints(data.points);
       } catch (err) {
-        console.error("Failed to fetch complaints:", err);
-        setError("Failed to load noise complaints. Using sample data.");
-        // Fall back to mock data
-        setListings(mockListings);
+        console.error("Failed to fetch density:", err);
+        setError("Failed to load noise data.");
       } finally {
         setLoading(false);
       }
     }
 
-    loadComplaints();
+    loadDensity();
   }, []);
 
-  const handleListingSelect = (listing: Listing) => {
-    setSelectedListing(listing);
-    setMapCenterTarget(listing.location);
-  };
+  // Fetch places when user location is available
+  useEffect(() => {
+    if (!userLocation) return;
 
-  const handleComplaintTypeChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, checked } = event.target;
-    setSelectedComplaintTypes((prev) =>
-      checked
-        ? [...prev, name as ComplaintType]
-        : prev.filter((type) => type !== name)
-    );
+    async function loadPlaces() {
+      try {
+        setPlacesLoading(true);
+        const fetchedPlaces = await fetchPlaces(
+          userLocation!.lat,
+          userLocation!.lng,
+          3000, // 3km radius
+          4.0   // min rating
+        );
+        setPlaces(fetchedPlaces);
+      } catch (err) {
+        console.error("Failed to fetch places:", err);
+        // Don't show error for places, just empty list
+      } finally {
+        setPlacesLoading(false);
+      }
+    }
+
+    loadPlaces();
+  }, [userLocation]);
+
+  const handlePlaceSelect = (place: Place) => {
+    setSelectedPlace(place);
+    setMapCenterTarget(place.location);
   };
 
   const handleCenterMap = () => {
@@ -112,35 +104,7 @@ export default function MapPage() {
     }
   };
 
-  const handleMilesChange = (_event: Event, newValue: number | number[]) => {
-    setMaxMiles(newValue as number);
-  };
-
-  const isListingFiltered = (listing: Listing): boolean => {
-    const maxMilesNum =
-      typeof maxMiles === "number" ? maxMiles : DEFAULT_MILES;
-
-    const matchesType = selectedComplaintTypes.includes(listing.type);
-
-    if (!matchesType) return false;
-
-    if (userLocation) {
-      const distance = getDistanceInMiles(
-        userLocation.lat,
-        userLocation.lng,
-        listing.location.lat,
-        listing.location.lng
-      );
-      if (distance > maxMilesNum) return false;
-      return true;
-    }
-
-    return true;
-  };
-
-  const filteredListings = listings.filter(isListingFiltered);
-
-  // Show loading state
+  // Show loading state for initial density load
   if (loading) {
     return (
       <Box
@@ -155,7 +119,7 @@ export default function MapPage() {
       >
         <CircularProgress sx={{ color: mainColor }} />
         <Typography variant="body1" color="text.secondary">
-          Loading noise complaints...
+          Loading noise data...
         </Typography>
       </Box>
     );
@@ -209,14 +173,11 @@ export default function MapPage() {
         }}
       >
         <ListingsPanel
-          listings={filteredListings}
-          onSelect={handleListingSelect}
+          places={places}
+          loading={placesLoading}
+          onSelect={handlePlaceSelect}
           onClose={() => setSidebarOpen(false)}
-          maxMiles={maxMiles}
-          handleMilesChange={handleMilesChange}
-          allComplaintTypes={ALL_COMPLAINT_TYPES}
-          selectedComplaintTypes={selectedComplaintTypes}
-          onComplaintTypeChange={handleComplaintTypeChange}
+          selectedPlace={selectedPlace}
         />
       </Box>
 
@@ -229,7 +190,6 @@ export default function MapPage() {
           position: "absolute",
           top: "50%",
           transform: "translateY(-50%)",
-
           left: sidebarOpen ? sidebarWidth : 0,
           zIndex: 25,
           width: 30,
@@ -252,26 +212,74 @@ export default function MapPage() {
       {/* --- MAP PANEL --- */}
       <Box sx={{ flexGrow: 1, height: "100%", position: "relative" }}>
         <MapPanel
-          listings={filteredListings}
-          selectedListing={selectedListing}
-          onSelect={handleListingSelect}
+          heatmapPoints={heatmapPoints}
+          places={places}
+          selectedPlace={selectedPlace}
+          onSelectPlace={handlePlaceSelect}
           userLocation={userLocation}
           centerTarget={mapCenterTarget}
         />
 
-        <MapOverlay
-          onCenterMap={handleCenterMap}
-          userLocationExists={!!userLocation}
-          permission={permission}
-          sidebarOpen={sidebarOpen}
-          filterOpen={filterOpen}
-          setFilterOpen={setFilterOpen}
-          maxMiles={maxMiles}
-          handleMilesChange={handleMilesChange}
-          allComplaintTypes={ALL_COMPLAINT_TYPES}
-          selectedComplaintTypes={selectedComplaintTypes}
-          onComplaintTypeChange={handleComplaintTypeChange}
-        />
+        {/* Center on location button */}
+        <Button
+          variant="outlined"
+          onClick={handleCenterMap}
+          sx={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            background: "#fff",
+            minWidth: 0,
+            width: 40,
+            height: 40,
+            borderRadius: "50%",
+            padding: 0,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            "&:hover": {
+              backgroundColor: "#f5f5f5",
+            },
+            color: "black",
+            zIndex: 9,
+          }}
+        >
+          🏠
+        </Button>
+
+        {/* Legend */}
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 80,
+            right: 16,
+            bgcolor: "white",
+            borderRadius: "8px",
+            p: 1.5,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            zIndex: 9,
+          }}
+        >
+          <Typography variant="caption" sx={{ fontWeight: 600, mb: 0.5, display: "block" }}>
+            Noise Level
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box
+              sx={{
+                width: 80,
+                height: 12,
+                borderRadius: 1,
+                background: "linear-gradient(to right, #FFFF00, #FFA500, #FF0000)",
+              }}
+            />
+          </Box>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10 }}>
+              Quiet
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 10 }}>
+              Noisy
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       {/* Mobile Close Button (VIEW MAP) */}
@@ -313,7 +321,7 @@ export default function MapPage() {
           maxWidth: sidebarMaxWidth,
         }}
       >
-        Show {filteredListings.length} Complaints
+        Show {places.length} Quiet Places
       </Button>
     </Box>
   );
