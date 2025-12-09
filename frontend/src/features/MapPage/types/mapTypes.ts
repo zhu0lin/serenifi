@@ -1,67 +1,121 @@
+import type { NoiseComplaint } from "../../../services/api";
 
-export type PlaceType = "Cafe" | "Library" | "Park" | "Schools";
+// Noise complaint types from 311 data
+export type ComplaintType =
+  | "Noise - Residential"
+  | "Noise - Commercial"
+  | "Noise - Street/Sidewalk"
+  | "Noise - Vehicle"
+  | "Noise - Park"
+  | "Noise - Helicopter"
+  | "Noise"
+  | "Other";
 
-export type Listing = {
-  id: number;
-  title: string;
-  rating: number;
-  image: string;
-  location: { lat: number; lng: number };
-  type: PlaceType;
+export const ALL_COMPLAINT_TYPES: ComplaintType[] = [
+  "Noise - Residential",
+  "Noise - Commercial",
+  "Noise - Street/Sidewalk",
+  "Noise - Vehicle",
+  "Noise - Park",
+  "Noise - Helicopter",
+];
+
+// Map complaint type strings to our defined types
+export function normalizeComplaintType(type: string | null): ComplaintType {
+  if (!type) return "Other";
+  
+  const normalizedTypes: Record<string, ComplaintType> = {
+    "Noise - Residential": "Noise - Residential",
+    "Noise - Commercial": "Noise - Commercial",
+    "Noise - Street/Sidewalk": "Noise - Street/Sidewalk",
+    "Noise - Vehicle": "Noise - Vehicle",
+    "Noise - Park": "Noise - Park",
+    "Noise - Helicopter": "Noise - Helicopter",
+    "Noise": "Noise",
+  };
+  
+  return normalizedTypes[type] || "Other";
+}
+
+// Display-friendly complaint type labels
+export const COMPLAINT_TYPE_LABELS: Record<ComplaintType, string> = {
+  "Noise - Residential": "Residential",
+  "Noise - Commercial": "Commercial",
+  "Noise - Street/Sidewalk": "Street/Sidewalk",
+  "Noise - Vehicle": "Vehicle",
+  "Noise - Park": "Park",
+  "Noise - Helicopter": "Helicopter",
+  "Noise": "General Noise",
+  "Other": "Other",
 };
 
-export const ALL_PLACE_TYPES: PlaceType[] = [
-  "Cafe",
-  "Library",
-  "Park",
-  "Schools",
-];
+// Listing type for UI display
+export type Listing = {
+  id: string;
+  title: string;
+  location: { lat: number; lng: number };
+  type: ComplaintType;
+  complaintType: string | null;
+};
 
 export type LatLngLiteral = {
   lat: number;
   lng: number;
 };
 
+/**
+ * Transform a NoiseComplaint from the API into a Listing for display
+ */
+export function complaintToListing(complaint: NoiseComplaint): Listing | null {
+  // Skip complaints without location
+  if (complaint.latitude === null || complaint.longitude === null) {
+    return null;
+  }
+  
+  const type = normalizeComplaintType(complaint.complaint_type);
+  
+  return {
+    id: complaint.unique_key,
+    title: complaint.complaint_type || "Noise Complaint",
+    location: {
+      lat: complaint.latitude,
+      lng: complaint.longitude,
+    },
+    type,
+    complaintType: complaint.complaint_type,
+  };
+}
 
-export const allListings: Listing[] = [
+/**
+ * Transform an array of NoiseComplaints into Listings, filtering out invalid ones
+ */
+export function complaintsToListings(complaints: NoiseComplaint[]): Listing[] {
+  return complaints
+    .map(complaintToListing)
+    .filter((listing): listing is Listing => listing !== null);
+}
+
+// Keep some mock data for fallback/testing
+export const mockListings: Listing[] = [
   {
-    id: 1,
-    title: "Greenwich Village Park View",
-    rating: 4.8,
-    image: "https://placehold.co/600x400/38B000/ffffff?text=Park+View",
+    id: "mock-1",
+    title: "Noise - Residential",
     location: { lat: 40.75, lng: -73.98 },
-    type: "Park",
+    type: "Noise - Residential",
+    complaintType: "Noise - Residential",
   },
   {
-    id: 2,
-    title: "Art High School near Museum Row",
-    rating: 4.6,
-    image: "https://placehold.co/600x400/800080/ffffff?text=High+School",
+    id: "mock-2",
+    title: "Noise - Commercial",
     location: { lat: 40.7712, lng: -73.9742 },
-    type: "Schools",
+    type: "Noise - Commercial",
+    complaintType: "Noise - Commercial",
   },
   {
-    id: 3,
-    title: "The Coffee Bean Cafe",
-    rating: 4.9,
-    image: "https://placehold.co/600x400/00A3C9/ffffff?text=Cafe",
+    id: "mock-3",
+    title: "Noise - Street/Sidewalk",
     location: { lat: 40.76, lng: -73.95 },
-    type: "Cafe",
-  },
-  {
-    id: 4,
-    title: "The Book Nook Library",
-    rating: 4.5,
-    image: "https://placehold.co/600x400/FFD700/000000?text=Library",
-    location: { lat: 40.74, lng: -74.0 },
-    type: "Library",
-  },
-  {
-    id: 5,
-    title: "Quiet Corner Park",
-    rating: 4.0,
-    image: "https://placehold.co/600x400/8A2BE2/ffffff?text=Park+2",
-    location: { lat: 40.72, lng: -74.01 },
-    type: "Park",
+    type: "Noise - Street/Sidewalk",
+    complaintType: "Noise - Street/Sidewalk",
   },
 ];

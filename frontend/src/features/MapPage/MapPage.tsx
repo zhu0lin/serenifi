@@ -1,16 +1,28 @@
 // MapPage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import ListingsPanel from "./components/ListingsPanel";
 import MapPanel from "./components/MapPanel";
 import MapOverlay from "./components/MapOverlay";
 import { useUserLocation } from "./hooks/useUserLocation";
-import type { Listing, PlaceType } from "./types/mapTypes";
-import { ALL_PLACE_TYPES, allListings } from "./types/mapTypes";
-import { mainColor, secondaryColor, DEFAULT_MILES, DEFAULT_CENTER_LOCATION } from "../../types";
+import type { Listing, ComplaintType } from "./types/mapTypes";
+import {
+  ALL_COMPLAINT_TYPES,
+  complaintsToListings,
+  mockListings,
+} from "./types/mapTypes";
+import { fetchComplaints } from "../../services/api";
+import {
+  mainColor,
+  secondaryColor,
+  DEFAULT_MILES,
+  DEFAULT_CENTER_LOCATION,
+} from "../../types";
 
 const getDistanceInMiles = (
   lat1: number,
@@ -31,14 +43,18 @@ const getDistanceInMiles = (
   return R * c;
 };
 
-
 const sidebarWidth = 400;
 const sidebarMaxWidth = "90%";
-
 
 export default function MapPage() {
   const { userLocation, permission } = useUserLocation();
 
+  // Data state
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI state
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [mapCenterTarget, setMapCenterTarget] = useState<{
     lat: number;
@@ -47,22 +63,43 @@ export default function MapPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [maxMiles, setMaxMiles] = useState<number | "">(DEFAULT_MILES);
-  const [selectedPlaceTypes, setSelectedPlaceTypes] =
-    useState<PlaceType[]>(ALL_PLACE_TYPES);
+  const [selectedComplaintTypes, setSelectedComplaintTypes] =
+    useState<ComplaintType[]>(ALL_COMPLAINT_TYPES);
 
+  // Fetch complaints on mount
+  useEffect(() => {
+    async function loadComplaints() {
+      try {
+        setLoading(true);
+        setError(null);
+        const complaints = await fetchComplaints(1000, true);
+        const transformedListings = complaintsToListings(complaints);
+        setListings(transformedListings);
+      } catch (err) {
+        console.error("Failed to fetch complaints:", err);
+        setError("Failed to load noise complaints. Using sample data.");
+        // Fall back to mock data
+        setListings(mockListings);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadComplaints();
+  }, []);
 
   const handleListingSelect = (listing: Listing) => {
     setSelectedListing(listing);
     setMapCenterTarget(listing.location);
   };
 
-  const handlePlaceTypeChange = (
+  const handleComplaintTypeChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, checked } = event.target;
-    setSelectedPlaceTypes((prev) =>
+    setSelectedComplaintTypes((prev) =>
       checked
-        ? [...prev, name as PlaceType]
+        ? [...prev, name as ComplaintType]
         : prev.filter((type) => type !== name)
     );
   };
@@ -71,11 +108,11 @@ export default function MapPage() {
     if (userLocation) {
       setMapCenterTarget(userLocation);
     } else {
-      setMapCenterTarget(DEFAULT_CENTER_LOCATION)
+      setMapCenterTarget(DEFAULT_CENTER_LOCATION);
     }
   };
 
-  const handleMilesChange = (event: Event, newValue: number | number[]) => {
+  const handleMilesChange = (_event: Event, newValue: number | number[]) => {
     setMaxMiles(newValue as number);
   };
 
@@ -83,7 +120,7 @@ export default function MapPage() {
     const maxMilesNum =
       typeof maxMiles === "number" ? maxMiles : DEFAULT_MILES;
 
-    const matchesType = selectedPlaceTypes.includes(listing.type);
+    const matchesType = selectedComplaintTypes.includes(listing.type);
 
     if (!matchesType) return false;
 
@@ -101,7 +138,28 @@ export default function MapPage() {
     return true;
   };
 
-  const filteredListings = allListings.filter(isListingFiltered);
+  const filteredListings = listings.filter(isListingFiltered);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: 2,
+        }}
+      >
+        <CircularProgress sx={{ color: mainColor }} />
+        <Typography variant="body1" color="text.secondary">
+          Loading noise complaints...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -113,6 +171,26 @@ export default function MapPage() {
         position: "relative",
       }}
     >
+      {/* Error banner */}
+      {error && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bgcolor: "#fff3cd",
+            color: "#856404",
+            p: 1,
+            textAlign: "center",
+            zIndex: 100,
+            borderBottom: "1px solid #ffc107",
+          }}
+        >
+          <Typography variant="body2">{error}</Typography>
+        </Box>
+      )}
+
       {/* --- LISTINGS PANEL (Sidebar) --- */}
       <Box
         sx={{
@@ -120,7 +198,7 @@ export default function MapPage() {
           minWidth: { xs: "100%", sm: sidebarOpen ? sidebarWidth : 0 },
           height: { xs: sidebarOpen ? "100%" : 0, sm: "100%" },
           position: { xs: "absolute", sm: "relative" },
-          top: 0,
+          top: error ? 40 : 0,
           left: 0,
           zIndex: 20,
           overflow: "hidden",
@@ -136,9 +214,9 @@ export default function MapPage() {
           onClose={() => setSidebarOpen(false)}
           maxMiles={maxMiles}
           handleMilesChange={handleMilesChange}
-          allPlaceTypes={ALL_PLACE_TYPES}
-          selectedPlaceTypes={selectedPlaceTypes}
-          onPlaceTypeChange={handlePlaceTypeChange}
+          allComplaintTypes={ALL_COMPLAINT_TYPES}
+          selectedComplaintTypes={selectedComplaintTypes}
+          onComplaintTypeChange={handleComplaintTypeChange}
         />
       </Box>
 
@@ -190,9 +268,9 @@ export default function MapPage() {
           setFilterOpen={setFilterOpen}
           maxMiles={maxMiles}
           handleMilesChange={handleMilesChange}
-          allPlaceTypes={ALL_PLACE_TYPES}
-          selectedPlaceTypes={selectedPlaceTypes}
-          onPlaceTypeChange={handlePlaceTypeChange}
+          allComplaintTypes={ALL_COMPLAINT_TYPES}
+          selectedComplaintTypes={selectedComplaintTypes}
+          onComplaintTypeChange={handleComplaintTypeChange}
         />
       </Box>
 
@@ -235,7 +313,7 @@ export default function MapPage() {
           maxWidth: sidebarMaxWidth,
         }}
       >
-        Show {filteredListings.length} Places
+        Show {filteredListings.length} Complaints
       </Button>
     </Box>
   );

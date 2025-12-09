@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_GOOGLE_MAP_API_KEY: string;
-  // add more env variables here if needed
+  readonly VITE_API_URL?: string;
 }
 
 interface ImportMeta {

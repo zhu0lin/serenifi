@@ -3,7 +3,7 @@ import { Box, Button } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import HomeIcon from "@mui/icons-material/Home";
 import MapFilterPanel from "./MapFilterPanel";
-import type { PlaceType } from "../types/mapTypes";
+import type { ComplaintType } from "../types/mapTypes";
 import { mainColor, secondaryColor } from "../../../types";
 
 type PermissionState = "granted" | "denied" | "prompt";
@@ -17,9 +17,9 @@ interface MapOverlayProps {
   sidebarOpen: boolean;
   maxMiles: number | "";
   handleMilesChange: (event: Event, newValue: number | number[]) => void;
-  allPlaceTypes: PlaceType[];
-  selectedPlaceTypes: PlaceType[];
-  onPlaceTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  allComplaintTypes: ComplaintType[];
+  selectedComplaintTypes: ComplaintType[];
+  onComplaintTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function MapOverlay({
@@ -29,9 +29,9 @@ export default function MapOverlay({
   sidebarOpen,
   maxMiles,
   handleMilesChange,
-  allPlaceTypes: ALL_PLACE_TYPES,
-  selectedPlaceTypes,
-  onPlaceTypeChange: handlePlaceTypeChange,
+  allComplaintTypes,
+  selectedComplaintTypes,
+  onComplaintTypeChange,
 }: MapOverlayProps) {
   return (
     <Box
@@ -64,7 +64,6 @@ export default function MapOverlay({
           color: "black",
           pointerEvents: "auto",
         }}
-
       >
         <HomeIcon sx={{ fontSize: 20 }} />
       </Button>
@@ -90,9 +89,9 @@ export default function MapOverlay({
         setFilterOpen={setFilterOpen}
         maxMiles={maxMiles}
         handleMilesChange={handleMilesChange}
-        allPlaceTypes={ALL_PLACE_TYPES}
-        selectedPlaceTypes={selectedPlaceTypes}
-        onPlaceTypeChange={handlePlaceTypeChange}
+        allComplaintTypes={allComplaintTypes}
+        selectedComplaintTypes={selectedComplaintTypes}
+        onComplaintTypeChange={onComplaintTypeChange}
         sidebarOpen={sidebarOpen}
       />
     </Box>

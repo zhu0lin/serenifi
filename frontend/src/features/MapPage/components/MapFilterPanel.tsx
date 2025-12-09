@@ -1,16 +1,17 @@
 import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import FilterControlsUI from "./FilterControlsUI";
-import type { PlaceType } from "../types/mapTypes";
+import type { ComplaintType } from "../types/mapTypes";
 import { LISTINGS_MAX_MILES } from "../../../types";
+
 interface MapFilterPanelProps {
   filterOpen: boolean;
   setFilterOpen: (open: boolean) => void;
   maxMiles: number | "";
   handleMilesChange: (event: Event, newValue: number | number[]) => void;
-  allPlaceTypes: PlaceType[];
-  selectedPlaceTypes: PlaceType[];
-  onPlaceTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  allComplaintTypes: ComplaintType[];
+  selectedComplaintTypes: ComplaintType[];
+  onComplaintTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   sidebarOpen?: boolean;
 }
 
@@ -34,6 +35,7 @@ export default function MapFilterPanel(props: MapFilterPanelProps) {
         maxHeight: "80vh",
         overflowY: "auto",
         display: props.sidebarOpen ? "none" : "block",
+        pointerEvents: "auto",
       }}
     >
       {/* Header and Close Button */}
@@ -52,7 +54,14 @@ export default function MapFilterPanel(props: MapFilterPanelProps) {
         </Typography>
       </Box>
 
-      <FilterControlsUI {...props} sliderMax={LISTINGS_MAX_MILES} />
+      <FilterControlsUI
+        maxMiles={props.maxMiles}
+        handleMilesChange={props.handleMilesChange}
+        allComplaintTypes={props.allComplaintTypes}
+        selectedComplaintTypes={props.selectedComplaintTypes}
+        onComplaintTypeChange={props.onComplaintTypeChange}
+        sliderMax={LISTINGS_MAX_MILES}
+      />
 
       <Button
         variant="contained"

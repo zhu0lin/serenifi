@@ -14,6 +14,8 @@ services:
       - ./frontend/tsconfig.json:/app/tsconfig.json
       - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
       - ./frontend/tsconfig.node.json:/app/tsconfig.node.json
+      # Mount .env file for Vite environment variables
+      - ./frontend/.env:/app/.env
     environment:
       - NODE_ENV=development
     depends_on:

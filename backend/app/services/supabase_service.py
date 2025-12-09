@@ -105,6 +105,39 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Error counting complaints: {e}")
             raise
+    
+    def get_all_complaints(
+        self,
+        limit: int = 1000,
+        has_location: bool = True
+    ) -> List[NoiseComplaint]:
+        """
+        Get all noise complaints from the database.
+        
+        Args:
+            limit: Maximum number of complaints to return
+            has_location: If True, only return complaints with lat/lng coordinates
+            
+        Returns:
+            List of NoiseComplaint objects
+        """
+        try:
+            query = self.client.table(self.table_name).select("*")
+            
+            # Filter for complaints that have location data
+            if has_location:
+                query = query.not_.is_("latitude", "null").not_.is_("longitude", "null")
+            
+            query = query.limit(limit)
+            response = query.execute()
+            
+            if response.data:
+                return [NoiseComplaint(**item) for item in response.data]
+            return []
+            
+        except Exception as e:
+            logger.error(f"Error fetching all complaints: {e}")
+            raise
 
 
 # Global service instance

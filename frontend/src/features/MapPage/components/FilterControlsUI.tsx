@@ -8,61 +8,65 @@ import {
   Checkbox,
 } from "@mui/material";
 
-import type { PlaceType } from "../types/mapTypes";
+import type { ComplaintType } from "../types/mapTypes";
+import { COMPLAINT_TYPE_LABELS } from "../types/mapTypes";
 import { mainColor, secondaryColor } from "../../../types";
 
 interface FilterControlsUIProps {
   maxMiles: number | "";
   handleMilesChange: (event: Event, newValue: number | number[]) => void;
-  allPlaceTypes: PlaceType[];
-  selectedPlaceTypes: PlaceType[];
-  onPlaceTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  allComplaintTypes: ComplaintType[];
+  selectedComplaintTypes: ComplaintType[];
+  onComplaintTypeChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   sliderMax: number;
 }
 
 export default function FilterControlsUI({
   maxMiles,
   handleMilesChange,
-  allPlaceTypes,
-  selectedPlaceTypes,
-  onPlaceTypeChange,
+  allComplaintTypes,
+  selectedComplaintTypes,
+  onComplaintTypeChange,
   sliderMax,
 }: FilterControlsUIProps) {
   const sliderValue = typeof maxMiles === "number" ? maxMiles : 1;
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {/* --- Property Type Filter (Now first) --- */}
+      {/* --- Complaint Type Filter --- */}
       <Box>
         <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
-          Property Type
+          Complaint Type
         </Typography>
-        <FormGroup row sx={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
-          {allPlaceTypes.map((type) => (
+        <FormGroup sx={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+          {allComplaintTypes.map((type) => (
             <FormControlLabel
               key={type}
               control={
                 <Checkbox
-                  checked={selectedPlaceTypes.includes(type)}
-                  onChange={onPlaceTypeChange}
+                  checked={selectedComplaintTypes.includes(type)}
+                  onChange={onComplaintTypeChange}
                   name={type}
                   size="small"
                   sx={{
                     color: mainColor,
                     "&.Mui-checked": { color: secondaryColor },
-                    p: 0,
-                    pl: 1,
+                    p: 0.5,
                   }}
                 />
               }
-              label={<Typography variant="body2">{type}</Typography>}
+              label={
+                <Typography variant="body2">
+                  {COMPLAINT_TYPE_LABELS[type]}
+                </Typography>
+              }
               sx={{ m: 0, mr: 1, mb: 0.5 }}
             />
           ))}
         </FormGroup>
       </Box>
 
-      {/* --- Max Distance Filter (Now second) --- */}
+      {/* --- Max Distance Filter --- */}
       <Box>
         <Typography
           variant="subtitle1"
