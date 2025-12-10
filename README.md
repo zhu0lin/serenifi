@@ -2,6 +2,8 @@
 
 A web application for finding quiet spaces in New York City. The app uses 311 Noise Complaints data from NYC OpenData to help users discover peaceful locations like libraries, parks, cafes, and privately owned public spaces (POPS) away from noisy areas.
 
+### Notice: Location must be shared for Serenifi to work correctly. This will be explicitly shown to users in next frontend update.
+
 ## Features
 
 - Interactive map interface powered by Google Maps
